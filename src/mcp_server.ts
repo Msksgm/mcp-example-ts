@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import axios from 'axios';
+import * as si from 'systeminformation';
 
 // MCPサーバーの初期実装
 const server = new McpServer({
@@ -50,6 +51,52 @@ server.registerTool(
           {
             type: 'text',
             text: `エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// バッテリー残量取得ツールを登録
+server.registerTool(
+  'get_battery_status',
+  {
+    title: 'Get Battery Status',
+    description: 'PCのバッテリー残量を取得します',
+    inputSchema: {},
+  },
+  async () => {
+    try {
+      const batteryData = await si.battery();
+      const batteryPercent = batteryData.percent;
+      const isCharging = batteryData.isCharging;
+      const acConnected = batteryData.acConnected;
+      
+      let statusMessage = `バッテリー残量: ${batteryPercent}%`;
+      
+      if (isCharging) {
+        statusMessage += ' (充電中)';
+      } else if (acConnected) {
+        statusMessage += ' (AC電源接続中)';
+      } else {
+        statusMessage += ' (バッテリー駆動中)';
+      }
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: statusMessage,
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `バッテリー情報の取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
           },
         ],
       };
